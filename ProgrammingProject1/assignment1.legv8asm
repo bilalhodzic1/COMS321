@@ -1,0 +1,166 @@
+//Bilal Hodzic NETID: bhodzic
+//Tin Ngo NETID: tinngo56
+//main
+ADDI X1, XZR, #55//Setting size param
+ADDI X0, XZR, #0 //Setting initial address param
+ADD X19, X0, XZR//Saving inital array value
+ADD X20, X1, XZR// Saving size
+BL fill //Branch to fill
+ADD X0, X19, XZR//Setting initial address param for selection sort
+ADD X1, X20, XZR//Setting n param for selection sort
+BL selection_sort //Branch to sort
+ADD X0, X19, XZR//Setting inital address for print
+ADD X1, X20, XZR //Setting total size for print
+BL printarray//Branch to print
+PRNL
+ADD X0, X19, XZR
+ADDI X1, XZR, #0
+ADD X2, X20, XZR
+BL binary_search
+PRNT X0
+ADD X0, X19, XZR
+ADDI X1, XZR, #54
+ADD X2, X20, XZR
+BL binary_search
+PRNT X0
+ADD X0, X19, XZR
+ADDI X1, XZR, #27
+ADD X2, X20, XZR
+BL binary_search
+PRNT X0
+ADD X0, X19, XZR
+ADDI X1, XZR, #67
+ADD X2, X20, XZR
+BL binary_search
+PRNT X0
+B end//Branch to end
+selection_sort: //WORKS
+    ADD X21, LR, XZR    //Savign link value so we can go back after all the other procedure calls
+    loop:
+        CBZ X1, endloopsort//Check if we are out of elements to sort
+        SUBI SP, SP, #16 //Prepare stack for 2 values
+        STUR X1, [SP, #0]//Store n
+        STUR X0, [SP, #8]//Store addr
+        ADD X2, X1, XZR //Saving n param for find min index
+        ADD X1, X0, XZR //Setting array param for find min index
+        BL find_min_index //Call find min
+        ADD X9, X0, XZR//Saving min index return value
+        LDUR X0, [SP, #8]//Load old array state
+        ADD X1, X9, XZR//Setting second num swap param
+        BL swap//Call swap
+        LDUR X0, [SP, #8]//Load old array state again
+        LDUR X1, [SP, #0]//Load old n value
+        ADDI SP, SP, #16//Readjust stack
+        ADDI X0, X0, #8//INcrement array
+        SUBI X1, X1, #1//Decremenet n
+        B loop//Back to top
+    endloopsort:
+        ADD LR, X21, XZR//Change LR back to old LR value
+        BR LR//Branch back to calller
+swap://WORKS
+    SUBI X1, X1, #1//Moving to start of index value
+    LSL X1, X1, #3//Account for integer size
+    LDUR X9, [X0, #0]//Load array current index value
+    ADD X0, X0, X1//Change array to new index
+    LDUR X10, [X0, #0]//Load value to swap
+    SUB X0, X0, X1//Array goes back to forst index
+    STUR X10, [X0, #0]//Store swap value to start
+    ADD X0, X0, X1//Array goes back to swap index
+    STUR X9, [X0, #0]//Store start value to swap index
+    BR LR//Branch back
+fill://WORKS
+    SUBI X1, X1, #1//Remove one from size
+    STUR X1, [X0, #0]//Store size value
+    ADDI X0, X0, #8//INcrement array by 1
+    SUBS XZR, XZR, X1//Check if we are below 0
+    B.LT fill//Back to top if not below 0
+    BR LR//Back to caller if below 0
+find_min_index://X1 is start of array X2 is current n WORKS
+    LDUR X9, [X1, #0]//Load first element
+    ADDI X10, XZR, #1//Start i value
+    ADD X0, X10, XZR//Start return value
+    loopmin:
+        SUB X12, X2, X10//Remove 1 from size
+        ADDI X1, X1, #8//Add 1 to index
+        CBZ X12, endloopmin//Check if we are out of numbers
+        LDUR X11, [X1, #0]//Load next element
+        ADDI X10, X10, #1//Add 1 to i
+        SUBS XZR, X9, X11//Set flags to check for smaller element
+        B.LT firstLess//If current element is less we branch to firstless
+        B secondLess//Branch to secondLess if the new element is less
+        firstLess:
+            B loopmin//Go back to start of loop
+        secondLess:
+            ADD X9, XZR, X11//Change current num to new num
+            ADD X0, X10, XZR//Change return vlaue to current 1
+            B firstLess//BAck to firstless
+    endloopmin:
+        BR LR//Back to caller
+printarray://WORKS
+    ADD X9, X0, XZR
+    loopprint:
+        CBZ X1, endprint//Check if we are out of elements
+        LDUR X0, [X9, #0]//Load first element
+        PRNT X0//PRint it
+        ADDI X9, X9, #8//INcrement array
+        SUBI X1, X1, #1//Remove one from size
+        B loopprint//Branch back
+    endprint:
+        BR LR//Back to calller
+binary_search://Params x0 is array, X1 is value to find, x2 is size of array
+    SUBI X2, X2, #1 //Changing from amount of elements to amount of indexs(n-1)
+    ADD X11, X2, XZR//Storing original amount of indexes
+    ADD X13, X2, XZR//High end
+    ADD X14, XZR, XZR//Low end
+    LSR X2, X2, #1//Finding middle index(does integer division)
+    ADD X9, X2, XZR//Storing current index to return index 
+    search_loop:
+        LSL X2, X2, #3//Multiplying by 8 to account for size of integer
+        SUBI SP, SP, #8//MOve stack to store initial array value
+        STUR X0, [SP, #0]//Store initial array value in stack
+        ADD X0, X2, x0//Move to current needed index
+        LDUR X10, [X0, #0]//LOad needed index in
+        SUBS XZR, X10, X1//Check if current looking index is equal less than or greater than and branch accordingly
+        B.EQ found
+        CBZ X2, notfound//Check if out of indexs going left
+        SUB X12, X11, X2//Create variable that determines if we are out of right indexes
+        CBZ X12, notfound
+        B.GT leftside
+        B.LT rightside
+        leftside://Adjust to mid index of left side array
+            LSR X2, X2, #3
+            ADD X13, X2, XZR
+            SUB X15, X2, X14
+            LSR X15, X15, #1
+            CBZ X15, zeroControl
+            SUB X2, X2, X15
+            LDUR X0, [SP, #0]
+            ADDI SP, SP, #8
+            B search_loop
+            zeroControl://Process for moving to new middle breaks down when accsessing the first elemet so this is needed
+                SUBI X2, X2, #1
+                LDUR X0, [SP, #0]
+                ADDI SP, SP, #8
+                B search_loop
+        rightside://ADjust for min index of right side array
+            LDUR X0, [SP, #0]
+            ADDI SP, SP, #8
+            LSR X2, X2, #3
+            ADD X14, X2, XZR
+            SUBI X15, X2, #1
+            SUB X15, X13, X15
+            LSR X15, X15, #1
+            CBZ X15, notfound//If we get stuck at the last element we know its not found
+            ADD X2, X2, X15
+            B search_loop
+        found:
+            ADDI SP, SP, #8//Fix stack
+            LSR X2, X2, #3//Adjust index
+            ADD X0, X2, XZR
+            BR LR//Back to main
+        notfound:
+            ADDI X0, XZR, #-1//Set return index to -1
+            BR LR//Back to main
+end:
+HALT
+
